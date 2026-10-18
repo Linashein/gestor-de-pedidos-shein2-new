@@ -29,7 +29,6 @@
         <span class="badge bg-dark px-3 py-2">Personal Shopper Suite</span>
     </header>
 
-    <!-- Navegación entre las 3 Secciones -->
     <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white" id="mainTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
@@ -102,17 +101,17 @@
                         <div class="p-3 bg-light rounded mb-3">
                             <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Ingresar Link / ID de SHEIN</label>
                             <div class="input-group mb-2">
-                                <input type="text" id="facSheinId" class="form-control" placeholder="Pegar Link o ID SHEIN" oninput="cargarDatosSheinAutomatico()">
-                                <button class="btn btn-dark" type="button" onclick="cargarDatosSheinAutomatico()">Cargar</button>
+                                <input type="text" id="facSheinId" class="form-control" placeholder="Pegar Link o ID SHEIN">
+                                <button class="btn btn-dark" type="button" onclick="consultarSupabaseShein()"><i class="fa-solid fa-cloud-arrow-down me-1"></i> Cargar</button>
                             </div>
                             <div class="row g-2 mb-2">
                                 <div class="col-8">
                                     <label class="small text-muted">Descripción</label>
-                                    <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Descripción breve">
+                                    <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Descripción producto">
                                 </div>
                                 <div class="col-4">
                                     <label class="small text-muted">Talla</label>
-                                    <input type="text" id="facTallaArt" class="form-control form-control-sm" placeholder="Ej: M / L">
+                                    <input type="text" id="facTallaArt" class="form-control form-control-sm" placeholder="Ej: M">
                                 </div>
                                 <div class="col-6">
                                     <label class="small text-muted">Precio Negro (Cliente)</label>
@@ -171,7 +170,7 @@
         <div class="tab-pane fade" id="private" role="tabpanel">
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Control Privado: Precios Sincronizados de Factura</h5>
-                <p class="text-muted small">Los artículos agregados a la factura se sincronizan aquí automáticamente para que evalúes tu ganancia y flete estimado.</p>
+                <p class="text-muted small">Los artículos agregados a la factura se sincronizan aquí automáticamente para evaluar ganancia y flete estimado.</p>
                 
                 <div class="table-responsive mb-4">
                     <table class="table table-hover align-middle">
@@ -264,28 +263,39 @@
         renderStock();
     }
 
+    // --- CONEXIÓN A SUPABASE ---
+    async function consultarSupabaseShein() {
+        const inputVal = document.getElementById('facSheinId').value.trim();
+        if(!inputVal) return alert('Por favor pega un link o ID de SHEIN');
+
+        const SUPABASE_FUNCTION_URL = 'https://jcvtgjnvqwdoxcytkomp.supabase.co/functions/v1/obtener-shein';
+
+        try {
+            const res = await fetch(SUPABASE_FUNCTION_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urlOrId: inputVal })
+            });
+            const data = await res.json();
+
+            if(data && data.precioNaranja) {
+                document.getElementById('facNombreArt').value = data.nombre;
+                document.getElementById('facTallaArt').value = data.talla;
+                document.getElementById('facPrecioNaranja').value = data.precioNaranja.toFixed(2);
+                
+                // Calcula el Precio Negro automáticamente (Costo + 40% de margen)
+                let precioNegroCalculado = data.precioNaranja * 1.40;
+                document.getElementById('facPrecioNegro').value = precioNegroCalculado.toFixed(2);
+            }
+        } catch(e) {
+            console.error("Error al conectar con Supabase:", e);
+            alert("No se pudo conectar con Supabase. Verifica la Edge Function.");
+        }
+    }
+
     // --- SECCIÓN 2: FACTURACIÓN ---
     function generarTracking() {
         document.getElementById('facTracking').value = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
-    }
-
-    function cargarDatosSheinAutomatico() {
-        const val = document.getElementById('facSheinId').value.trim();
-        if(val.length > 3) {
-            // Genera autocompletado automático si no se han escrito precios
-            if(!document.getElementById('facNombreArt').value) {
-                document.getElementById('facNombreArt').value = "Artículo SHEIN";
-            }
-            if(!document.getElementById('facTallaArt').value) {
-                document.getElementById('facTallaArt').value = "M";
-            }
-            if(!document.getElementById('facPrecioNegro').value) {
-                document.getElementById('facPrecioNegro').value = "15.00";
-            }
-            if(!document.getElementById('facPrecioNaranja').value) {
-                document.getElementById('facPrecioNaranja').value = "10.00";
-            }
-        }
     }
 
     function evaluarDescuentoCliente() {
@@ -319,7 +329,6 @@
             peso: 0.5 
         });
 
-        // Limpiar inputs
         document.getElementById('facSheinId').value = '';
         document.getElementById('facNombreArt').value = '';
         document.getElementById('facTallaArt').value = '';
