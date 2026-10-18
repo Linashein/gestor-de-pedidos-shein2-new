@@ -100,14 +100,19 @@
                         </div>
                         <hr>
                         <div class="p-3 bg-light rounded mb-3">
-                            <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Ingresar por ID de SHEIN</label>
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Ingresar Link / ID de SHEIN</label>
                             <div class="input-group mb-2">
-                                <input type="text" id="facSheinId" class="form-control" placeholder="Código / ID SHEIN">
-                                <button class="btn btn-dark" type="button" onclick="cargarDatosShein()">Cargar</button>
+                                <input type="text" id="facSheinId" class="form-control" placeholder="Pegar Link o ID SHEIN" oninput="cargarDatosSheinAutomatico()">
+                                <button class="btn btn-dark" type="button" onclick="cargarDatosSheinAutomatico()">Cargar</button>
                             </div>
                             <div class="row g-2 mb-2">
-                                <div class="col-12">
+                                <div class="col-8">
+                                    <label class="small text-muted">Descripción</label>
                                     <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Descripción breve">
+                                </div>
+                                <div class="col-4">
+                                    <label class="small text-muted">Talla</label>
+                                    <input type="text" id="facTallaArt" class="form-control form-control-sm" placeholder="Ej: M / L">
                                 </div>
                                 <div class="col-6">
                                     <label class="small text-muted">Precio Negro (Cliente)</label>
@@ -140,6 +145,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>ID / Artículo</th>
+                                        <th>Talla</th>
                                         <th>Cant.</th>
                                         <th>Precio</th>
                                         <th>Total</th>
@@ -172,6 +178,7 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>ID / Prenda</th>
+                                <th>Talla</th>
                                 <th>Precio Negro (Cliente)</th>
                                 <th>Precio Naranja (Costo SHEIN)</th>
                                 <th>Tipo / Flete ($6/lb)</th>
@@ -179,7 +186,7 @@
                             </tr>
                         </thead>
                         <tbody id="tablaControlPrivado">
-                            <tr><td colspan="5" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -262,12 +269,23 @@
         document.getElementById('facTracking').value = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
     }
 
-    function cargarDatosShein() {
-        const id = document.getElementById('facSheinId').value;
-        if(!id) return alert('Ingresa un ID de SHEIN');
-        document.getElementById('facNombreArt').value = "Prenda SHEIN #" + id;
-        document.getElementById('facPrecioNegro').value = (18.00).toFixed(2);
-        document.getElementById('facPrecioNaranja').value = (12.50).toFixed(2);
+    function cargarDatosSheinAutomatico() {
+        const val = document.getElementById('facSheinId').value.trim();
+        if(val.length > 3) {
+            // Genera autocompletado automático si no se han escrito precios
+            if(!document.getElementById('facNombreArt').value) {
+                document.getElementById('facNombreArt').value = "Artículo SHEIN";
+            }
+            if(!document.getElementById('facTallaArt').value) {
+                document.getElementById('facTallaArt').value = "M";
+            }
+            if(!document.getElementById('facPrecioNegro').value) {
+                document.getElementById('facPrecioNegro').value = "15.00";
+            }
+            if(!document.getElementById('facPrecioNaranja').value) {
+                document.getElementById('facPrecioNaranja').value = "10.00";
+            }
+        }
     }
 
     function evaluarDescuentoCliente() {
@@ -284,6 +302,7 @@
     function agregarArticuloFactura() {
         const id = document.getElementById('facSheinId').value || 'S/N';
         const nombre = document.getElementById('facNombreArt').value || 'Artículo SHEIN';
+        const talla = document.getElementById('facTallaArt').value || 'S/N';
         const precioNegro = parseFloat(document.getElementById('facPrecioNegro').value) || 0;
         const precioNaranja = parseFloat(document.getElementById('facPrecioNaranja').value) || (precioNegro * 0.7);
 
@@ -292,7 +311,8 @@
         facturaItems.push({ 
             uid: Date.now(),
             id, 
-            nombre, 
+            nombre,
+            talla, 
             cantidad: 1, 
             precioNegro, 
             precioNaranja,
@@ -302,6 +322,7 @@
         // Limpiar inputs
         document.getElementById('facSheinId').value = '';
         document.getElementById('facNombreArt').value = '';
+        document.getElementById('facTallaArt').value = '';
         document.getElementById('facPrecioNegro').value = '';
         document.getElementById('facPrecioNaranja').value = '';
 
@@ -322,6 +343,7 @@
             tbody.innerHTML += `
                 <tr>
                     <td><small class="text-muted">${item.id}</small><br>${item.nombre}</td>
+                    <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>${item.cantidad}</td>
                     <td>$${item.precioNegro.toFixed(2)}</td>
                     <td>$${(item.precioNegro * item.cantidad).toFixed(2)}</td>
@@ -382,7 +404,7 @@
     function renderControlPrivado() {
         const tbody = document.getElementById('tablaControlPrivado');
         if(facturaItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>';
             document.getElementById('resGananciaBruta').innerText = '$0.00';
             document.getElementById('resFlete').innerText = '$0.00';
             document.getElementById('resGananciaNeta').innerText = '$0.00';
@@ -402,6 +424,7 @@
             tbody.innerHTML += `
                 <tr>
                     <td><small class="text-muted">${item.id}</small><br><strong>${item.nombre}</strong></td>
+                    <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>$${item.precioNegro.toFixed(2)}</td>
                     <td>$${item.precioNaranja.toFixed(2)}</td>
                     <td>
