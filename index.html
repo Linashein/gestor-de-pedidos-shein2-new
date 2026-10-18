@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor & Facturador SHEIN V2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-pink: #ff6b8b;
+            --secondary-pink: #ffe6eb;
+            --dark-accent: #2c3e50;
+        }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .nav-pills .nav-link.active { background-color: var(--primary-pink); }
+        .nav-link { color: var(--dark-accent); font-weight: 600; }
+        .card-custom { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .badge-black { background-color: #000; color: #fff; }
+        .badge-orange { background-color: #ff5722; color: #fff; }
+        .invoice-box { background: #fff; padding: 25px; border-radius: 10px; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <h2 class="fw-bold" style="color: var(--primary-pink);">
+            <i class="fa-solid fa-bag-shopping me-2"></i>LinaShein Gestor V2
+        </h2>
+        <span class="badge bg-dark px-3 py-2">Personal Shopper Suite</span>
+    </header>
+
+    <!-- Navegación entre las 3 Secciones -->
+    <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white" id="mainTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
+                <i class="fa-solid fa-boxes-stacked me-2"></i>1. Stock Disponible
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button">
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i>2. Facturación & Cliente
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="private-tab" data-bs-toggle="tab" data-bs-target="#private" type="button">
+                <i class="fa-solid fa-user-lock me-2"></i>3. Mi Control Privado
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+        <!-- SECCIÓN 1: STOCK DISPONIBLE -->
+        <div class="tab-pane fade show active" id="stock" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card card-custom p-4">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-plus me-2"></i>Agregar al Stock</h5>
+                        <form id="formStock">
+                            <div class="mb-2"><label class="form-label small">Artículo</label><input type="text" id="stArticulo" class="form-control" required placeholder="Ej: Top Crop Estampado"></div>
+                            <div class="mb-2"><label class="form-label small">Cantidad</label><input type="number" id="stCantidad" class="form-control" value="1" required></div>
+                            <div class="mb-2"><label class="form-label small">Talla</label><input type="text" id="stTalla" class="form-control" placeholder="Ej: M"></div>
+                            <div class="mb-2"><label class="form-label small">Color</label><input type="text" id="stColor" class="form-control" placeholder="Ej: Negro"></div>
+                            <div class="mb-3"><label class="form-label small">Precio de Venta ($)</label><input type="number" step="0.01" id="stPrecio" class="form-control" required placeholder="0.00"></div>
+                            <button type="submit" class="btn w-100 text-white fw-bold" style="background-color: var(--primary-pink);">Guardar en Stock</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card card-custom p-4">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-list me-2"></i>Inventario Local</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Artículo</th><th>Talla</th><th>Color</th><th>Cant.</th><th>Precio</th><th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaStock"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: FACTURACIÓN CLIENTE -->
+        <div class="tab-pane fade" id="billing" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <div class="card card-custom p-4">
+                        <h5 class="fw-bold mb-3"><i class="fa-solid fa-cart-plus me-2"></i>Generar Pedido</h5>
+                        <div class="mb-2">
+                            <label class="form-label small">Tracking ID (Personalizado)</label>
+                            <input type="text" id="facTracking" class="form-control fw-bold" readonly>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Nombre del Cliente</label>
+                            <input type="text" id="facCliente" class="form-control" placeholder="Ej: María Pérez" oninput="evaluarDescuentoCliente()">
+                            <small id="lblFidelidad" class="text-success fw-bold d-none"><i class="fa-solid fa-star me-1"></i>¡Cliente Frecuente! 3% desc. aplicado</small>
+                        </div>
+                        <hr>
+                        <div class="p-3 bg-light rounded mb-3">
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Ingresar por ID de SHEIN</label>
+                            <div class="input-group mb-2">
+                                <input type="text" id="facSheinId" class="form-control" placeholder="Código o ID SHEIN">
+                                <button class="btn btn-dark" type="button" onclick="cargarDatosShein()">Cargar</button>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-8">
+                                    <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Descripción breve">
+                                </div>
+                                <div class="col-4">
+                                    <input type="number" step="0.01" id="facPrecioNegro" class="form-control form-control-sm" placeholder="Precio Negro ($)">
+                                </div>
+                            </div>
+                            <div class="mt-2 text-end">
+                                <button class="btn btn-sm btn-outline-danger" onclick="agregarArticuloFactura()">+ Agregar a Factura</button>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Costo Envío Estimado ($)</label>
+                            <input type="number" step="0.01" id="facEnvio" class="form-control" value="0.00" oninput="calcularTotalFactura()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-7">
+                    <div class="invoice-box card-custom">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold mb-0">FACTURA DE COMPRA</h4>
+                            <span class="badge bg-secondary">Entrega: 15-20 días hábiles</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID / Artículo</th>
+                                        <th>Cant.</th>
+                                        <th>Precio Regular</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaFactura"></tbody>
+                            </table>
+                        </div>
+                        <div class="text-end mt-3">
+                            <p class="mb-1">Subtotal: <span id="lblSubtotal" class="fw-bold">$0.00</span></p>
+                            <p class="mb-1 text-danger" id="rowDescuento" style="display:none;">Descuento (3%): <span id="lblDescuento">-$0.00</span></p>
+                            <p class="mb-1">Envío: <span id="lblEnvio" class="fw-bold">$0.00</span></p>
+                            <h4 class="fw-bold text-dark mt-2">TOTAL: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
+                        </div>
+                        <button class="btn btn-dark w-100 mt-3" onclick="guardarFactura()"><i class="fa-solid fa-floppy-disk me-2"></i>Guardar y Emitir Factura</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: CONTROL PRIVADO GANANCIAS -->
+        <div class="tab-pane fade" id="private" role="tabpanel">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Cálculo Privado: Precio Negro vs Precio Naranja</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label small">ID de Artículo SHEIN</label>
+                        <input type="text" id="prvId" class="form-control" placeholder="Ej: 948201">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Precio Negro (Cliente)</label>
+                        <input type="number" step="0.01" id="prvPrecioNegro" class="form-control" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Precio Naranja (Oferta SHEIN)</label>
+                        <input type="number" step="0.01" id="prvPrecioNaranja" class="form-control" placeholder="0.00">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Tipo de Prenda (Flete $6/lb)</label>
+                        <select id="prvTipo" class="form-select">
+                            <option value="0.5">Camisa / Top (~0.5 lb)</option>
+                            <option value="1.2">Jean / Pantalón (~1.2 lb)</option>
+                            <option value="0.8">Vestido (~0.8 lb)</option>
+                            <option value="1.5">Chaqueta / Calzado (~1.5 lb)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-success fw-bold" onclick="calcularGananciaPrivada()"><i class="fa-solid fa-calculator me-2"></i>Calcular Ganancia & Flete Base</button>
+
+                <div id="resPrivado" class="mt-4 p-3 bg-light rounded border d-none">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h6>Diferencia / Ganancia Bruta</h6>
+                            <h3 class="text-success fw-bold" id="resGananciaBruta">$0.00</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Flete Estimado Base ($6/lb)</h6>
+                            <h3 class="text-warning fw-bold" id="resFlete">$0.00</h3>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Rentabilidad Neta</h6>
+                            <h3 class="text-primary fw-bold" id="resRentabilidad">0%</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Inicializar Datos
+    let stock = JSON.parse(localStorage.getItem('st_stock')) || [];
+    let clientes = JSON.parse(localStorage.getItem('st_clientes')) || {};
+    let facturaItems = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderStock();
+        generarTracking();
+    });
+
+    // --- SECCIÓN 1: STOCK ---
+    document.getElementById('formStock').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const item = {
+            id: Date.now(),
+            articulo: document.getElementById('stArticulo').value,
+            cantidad: parseInt(document.getElementById('stCantidad').value),
+            talla: document.getElementById('stTalla').value,
+            color: document.getElementById('stColor').value,
+            precio: parseFloat(document.getElementById('stPrecio').value)
+        };
+        stock.push(item);
+        localStorage.setItem('st_stock', JSON.stringify(stock));
+        renderStock();
+        e.target.reset();
+    });
+
+    function renderStock() {
+        const tbody = document.getElementById('tablaStock');
+        tbody.innerHTML = '';
+        stock.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.articulo}</td>
+                    <td><span class="badge bg-secondary">${item.talla}</span></td>
+                    <td>${item.color}</td>
+                    <td><span class="fw-bold">${item.cantidad}</span></td>
+                    <td>$${item.precio.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarStock(${item.id})"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    function eliminarStock(id) {
+        stock = stock.filter(i => i.id !== id);
+        localStorage.setItem('st_stock', JSON.stringify(stock));
+        renderStock();
+    }
+
+    // --- SECCIÓN 2: FACTURACIÓN ---
+    function generarTracking() {
+        document.getElementById('facTracking').value = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
+    }
+
+    function cargarDatosShein() {
+        const id = document.getElementById('facSheinId').value;
+        if(!id) return alert('Ingresa un ID de SHEIN');
+        // Simulación de autocompletado
+        document.getElementById('facNombreArt').value = "Prenda SHEIN #" + id;
+        document.getElementById('facPrecioNegro').value = (Math.random() * 15 + 10).toFixed(2);
+    }
+
+    function evaluarDescuentoCliente() {
+        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
+        const lbl = document.getElementById('lblFidelidad');
+        if(clientes[cliente] && clientes[cliente] >= 1) {
+            lbl.classList.remove('d-none');
+        } else {
+            lbl.classList.add('d-none');
+        }
+        calcularTotalFactura();
+    }
+
+    function agregarArticuloFactura() {
+        const id = document.getElementById('facSheinId').value || 'S/N';
+        const nombre = document.getElementById('facNombreArt').value || 'Artículo SHEIN';
+        const precio = parseFloat(document.getElementById('facPrecioNegro').value) || 0;
+
+        if(precio <= 0) return alert('Ingresa un precio válido');
+
+        facturaItems.push({ id, nombre, cantidad: 1, precio });
+        renderFactura();
+    }
+
+    function renderFactura() {
+        const tbody = document.getElementById('tablaFactura');
+        tbody.innerHTML = '';
+        facturaItems.forEach(item => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><small class="text-muted">${item.id}</small><br>${item.nombre}</td>
+                    <td>${item.cantidad}</td>
+                    <td>$${item.precio.toFixed(2)}</td>
+                    <td>$${(item.precio * item.cantidad).toFixed(2)}</td>
+                </tr>`;
+        });
+        calcularTotalFactura();
+    }
+
+    function calcularTotalFactura() {
+        let subtotal = facturaItems.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
+        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
+        let descuento = 0;
+
+        if(clientes[cliente] && clientes[cliente] >= 1) {
+            descuento = subtotal * 0.03;
+            document.getElementById('rowDescuento').style.display = 'block';
+            document.getElementById('lblDescuento').innerText = '-$' + descuento.toFixed(2);
+        } else {
+            document.getElementById('rowDescuento').style.display = 'none';
+        }
+
+        const envio = parseFloat(document.getElementById('facEnvio').value) || 0;
+        const total = (subtotal - descuento) + envio;
+
+        document.getElementById('lblSubtotal').innerText = '$' + subtotal.toFixed(2);
+        document.getElementById('lblEnvio').innerText = '$' + envio.toFixed(2);
+        document.getElementById('lblTotal').innerText = '$' + total.toFixed(2);
+    }
+
+    function guardarFactura() {
+        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
+        if(!cliente) return alert('Ingresa el nombre del cliente');
+        if(facturaItems.length === 0) return alert('Agrega al menos un artículo');
+
+        clientes[cliente] = (clientes[cliente] || 0) + 1;
+        localStorage.setItem('st_clientes', JSON.stringify(clientes));
+
+        alert('¡Factura guardada con éxito!');
+        facturaItems = [];
+        document.getElementById('facCliente').value = '';
+        renderFactura();
+        generarTracking();
+    }
+
+    // --- SECCIÓN 3: CONTROL PRIVADO ---
+    function calcularGananciaPrivada() {
+        const pNegro = parseFloat(document.getElementById('prvPrecioNegro').value) || 0;
+        const pNaranja = parseFloat(document.getElementById('prvPrecioNaranja').value) || 0;
+        const peso = parseFloat(document.getElementById('prvTipo').value) || 0;
+
+        if(pNegro <= 0 || pNaranja <= 0) return alert('Ingresa ambos precios');
+
+        const gananciaBruta = pNegro - pNaranja;
+        const flete = peso * 6; // $6 por libra
+        const rentabilidad = ((gananciaBruta / pNaranja) * 100).toFixed(1);
+
+        document.getElementById('resGananciaBruta').innerText = '$' + gananciaBruta.toFixed(2);
+        document.getElementById('resFlete').innerText = '$' + flete.toFixed(2);
+        document.getElementById('resRentabilidad').innerText = rentabilidad + '%';
+        document.getElementById('resPrivado').classList.remove('d-none');
+    }
+</script>
+
+</body>
+</html>
