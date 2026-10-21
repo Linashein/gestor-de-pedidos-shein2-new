@@ -42,21 +42,26 @@
         <span class="badge bg-dark px-3 py-2">Personal Shopper Suite</span>
     </header>
 
-    <!-- Navegación principal -->
+    <!-- Navegación principal entre 4 Secciones -->
     <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white no-print" id="mainTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
-                <i class="fa-solid fa-boxes-stacked me-2"></i>1. Stock Disponibles
+                <i class="fa-solid fa-boxes-stacked me-2"></i>1. Stock
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button">
-                <i class="fa-solid fa-file-invoice-dollar me-2"></i>2. Facturación & Cliente
+                <i class="fa-solid fa-file-invoice-dollar me-2"></i>2. Facturación
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" id="private-tab" data-bs-toggle="tab" data-bs-target="#private" type="button">
-                <i class="fa-solid fa-user-lock me-2"></i>3. Mi Control Privado
+                <i class="fa-solid fa-user-lock me-2"></i>3. Control Fletes
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="accounting-tab" data-bs-toggle="tab" data-bs-target="#accounting" type="button">
+                <i class="fa-solid fa-chart-line me-2"></i>4. Mi Contabilidad
             </button>
         </li>
     </ul>
@@ -236,11 +241,11 @@
             </div>
         </div>
 
-        <!-- SECCIÓN 3: CONTROL PRIVADO GANANCIAS -->
+        <!-- SECCIÓN 3: CONTROL PRIVADO FLETES -->
         <div class="tab-pane fade" id="private" role="tabpanel">
             <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Control Privado: Costos y Fletes</h5>
-                <p class="text-muted small">Cálculo exacto del peso estimado por tipo de prenda (Tarifa: $6 por libra) y costo base de la mercancía.</p>
+                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Control Privado: Costos y Fletes del Pedido Actual</h5>
+                <p class="text-muted small">Cálculo exacto del peso estimado por tipo de prenda (Tarifa: $6 por libra) de la factura activa.</p>
                 
                 <div class="table-responsive mb-4">
                     <table class="table table-hover align-middle">
@@ -272,6 +277,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- SECCIÓN 4: MI CONTABILIDAD GLOBAL -->
+        <div class="tab-pane fade" id="accounting" role="tabpanel">
+            <div class="card card-custom p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-wallet me-2"></i>Balance y Contabilidad Acumulada</h5>
+                    <button class="btn btn-sm btn-outline-danger" onclick="reiniciarContabilidad()"><i class="fa-solid fa-rotate-right me-1"></i> Reiniciar Cuentas</button>
+                </div>
+                <p class="text-muted small mb-4">Resumen acumulado de todas tus facturas emitidas hasta la fecha.</p>
+
+                <div class="row g-3 mb-4 text-center">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small fw-bold">Ventas Totales</span>
+                            <h3 class="text-dark fw-bold mb-0" id="accVentasTotales">$0.00</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small fw-bold">Costo SHEIN Acumulado</span>
+                            <h3 class="text-danger fw-bold mb-0" id="accCostoShein">$0.00</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small fw-bold">Fletes Acumulados ($6/lb)</span>
+                            <h3 class="text-warning fw-bold mb-0" id="accFletesTotales">$0.00</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-success text-white rounded border">
+                            <span class="small fw-bold">Ganancia Neta Limpia</span>
+                            <h3 class="fw-bold mb-0" id="accGananciaNeta">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-list-check me-2"></i>Desglose por Factura Guardada</h6>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Total Cliente</th>
+                                <th>Costo SHEIN</th>
+                                <th>Flete Est.</th>
+                                <th>Ganancia Neta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaContabilidadDesglose">
+                            <tr><td colspan="6" class="text-center text-muted">Aún no hay registros en la contabilidad.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -286,6 +348,7 @@
         generarTracking();
         establecerFechaHoy();
         renderHistorial();
+        renderContabilidad();
     });
 
     // --- SECCIÓN 1: STOCK ---
@@ -424,7 +487,10 @@
 
         const { subtotal, envio, total } = calcularTotalFactura();
 
-        // Guardar en el historial con estatus inicial "En camino"
+        // Calcular costo SHEIN y Flete total de esta factura
+        let costoSheinTotal = facturaItems.reduce((acc, i) => acc + i.precioNaranja, 0);
+        let fleteTotal = facturaItems.reduce((acc, i) => acc + (i.peso * 6), 0);
+
         const nuevaFactura = {
             id: Date.now(),
             fecha: document.getElementById('printFecha').innerText,
@@ -434,18 +500,23 @@
             subtotal,
             envio,
             total,
+            costoSheinTotal,
+            fleteTotal,
+            gananciaNeta: subtotal - (costoSheinTotal + fleteTotal),
             estatus: 'En camino ✈️'
         };
 
         historialFacturas.unshift(nuevaFactura);
         localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+        
         renderHistorial();
+        renderContabilidad();
 
-        // Generar ventana de PDF/Impresión
+        // Generar impresión/PDF
         window.print();
     }
 
-    // --- MANEJO DE HISTORIAL Y ESTATUS LOGÍSTICO ---
+    // --- MANEJO DE HISTORIAL ---
     function cambiarEstatusFactura(id, nuevoEstatus) {
         const fact = historialFacturas.find(f => f.id === id);
         if(fact) {
@@ -510,6 +581,7 @@
             historialFacturas = historialFacturas.filter(f => f.id !== id);
             localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
             renderHistorial();
+            renderContabilidad();
         }
     }
 
@@ -558,6 +630,62 @@
 
         document.getElementById('resCostoNaranja').innerText = '$' + totCostoNaranja.toFixed(2);
         document.getElementById('resFleteTotal').innerText = '$' + totFlete.toFixed(2);
+    }
+
+    // --- SECCIÓN 4: CONTABILIDAD GLOBAL ---
+    function renderContabilidad() {
+        const tbody = document.getElementById('tablaContabilidadDesglose');
+        
+        let totVentas = 0;
+        let totShein = 0;
+        let totFletes = 0;
+
+        if(historialFacturas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aún no hay registros en la contabilidad.</td></tr>';
+            document.getElementById('accVentasTotales').innerText = '$0.00';
+            document.getElementById('accCostoShein').innerText = '$0.00';
+            document.getElementById('accFletesTotales').innerText = '$0.00';
+            document.getElementById('accGananciaNeta').innerText = '$0.00';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        historialFacturas.forEach(f => {
+            const sub = f.subtotal || 0;
+            const shein = f.costoSheinTotal || 0;
+            const flete = f.fleteTotal || 0;
+            const ganancia = sub - (shein + flete);
+
+            totVentas += sub;
+            totShein += shein;
+            totFletes += flete;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><small>${f.fecha}</small></td>
+                    <td><strong>${f.cliente}</strong></td>
+                    <td class="fw-bold">$${sub.toFixed(2)}</td>
+                    <td class="text-danger">$${shein.toFixed(2)}</td>
+                    <td class="text-warning">$${flete.toFixed(2)}</td>
+                    <td class="fw-bold text-success">$${ganancia.toFixed(2)}</td>
+                </tr>`;
+        });
+
+        let gananciaNetaTotal = totVentas - (totShein + totFletes);
+
+        document.getElementById('accVentasTotales').innerText = '$' + totVentas.toFixed(2);
+        document.getElementById('accCostoShein').innerText = '$' + totShein.toFixed(2);
+        document.getElementById('accFletesTotales').innerText = '$' + totFletes.toFixed(2);
+        document.getElementById('accGananciaNeta').innerText = '$' + gananciaNetaTotal.toFixed(2);
+    }
+
+    function reiniciarContabilidad() {
+        if(confirm('¿Estás segura de reiniciar toda la contabilidad e historial? Se borrarán las facturas acumuladas.')) {
+            historialFacturas = [];
+            localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+            renderHistorial();
+            renderContabilidad();
+        }
     }
 </script>
 
