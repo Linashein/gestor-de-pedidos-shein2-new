@@ -17,12 +17,19 @@
         .nav-link { color: var(--dark-accent); font-weight: 600; }
         .card-custom { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .invoice-box { background: #fff; padding: 25px; border-radius: 10px; border: 1px solid #eee; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container py-4">
-    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom no-print">
         <h2 class="fw-bold" style="color: var(--primary-pink);">
             <i class="fa-solid fa-bag-shopping me-2"></i>LinaShein Gestor V2
         </h2>
@@ -30,7 +37,7 @@
     </header>
 
     <!-- Navegación entre las 3 Secciones -->
-    <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white" id="mainTab" role="tablist">
+    <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white no-print" id="mainTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
                 <i class="fa-solid fa-boxes-stacked me-2"></i>1. Stock Disponibles
@@ -86,7 +93,7 @@
         <!-- SECCIÓN 2: FACTURACIÓN CLIENTE -->
         <div class="tab-pane fade" id="billing" role="tabpanel">
             <div class="row g-4">
-                <div class="col-md-5">
+                <div class="col-md-5 no-print">
                     <div class="card card-custom p-4">
                         <h5 class="fw-bold mb-3"><i class="fa-solid fa-cart-plus me-2"></i>Generar Pedido</h5>
                         <div class="mb-2">
@@ -95,31 +102,30 @@
                         </div>
                         <div class="mb-2">
                             <label class="form-label small">Nombre del Cliente</label>
-                            <input type="text" id="facCliente" class="form-control" placeholder="Ej: María Pérez" oninput="evaluarDescuentoCliente()">
-                            <small id="lblFidelidad" class="text-success fw-bold d-none"><i class="fa-solid fa-star me-1"></i>¡Cliente Frecuente! 3% desc. aplicado</small>
+                            <input type="text" id="facCliente" class="form-control" placeholder="Ej: María Pérez" oninput="actualizarNombreCliente()">
                         </div>
                         <hr>
                         <div class="p-3 bg-light rounded mb-3">
-                            <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Ingresar Link / ID de SHEIN</label>
-                            <div class="input-group mb-2">
-                                <input type="text" id="facSheinId" class="form-control" placeholder="Pegar Link o ID SHEIN" oninput="cargarDatosSheinAutomatico()">
-                                <button class="btn btn-dark" type="button" onclick="cargarDatosSheinAutomatico()">Cargar</button>
-                            </div>
+                            <label class="form-label fw-bold small"><i class="fa-solid fa-magnifying-glass me-1"></i>Detalles del Artículo</label>
                             <div class="row g-2 mb-2">
+                                <div class="col-12">
+                                    <label class="small text-muted">Link o ID SHEIN</label>
+                                    <input type="text" id="facSheinId" class="form-control form-control-sm" placeholder="Pegar Link o ID">
+                                </div>
                                 <div class="col-8">
                                     <label class="small text-muted">Descripción</label>
-                                    <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Descripción breve">
+                                    <input type="text" id="facNombreArt" class="form-control form-control-sm" placeholder="Ej: Top asimétrico">
                                 </div>
                                 <div class="col-4">
                                     <label class="small text-muted">Talla</label>
-                                    <input type="text" id="facTallaArt" class="form-control form-control-sm" placeholder="Ej: M / L">
+                                    <input type="text" id="facTallaArt" class="form-control form-control-sm" placeholder="Ej: M">
                                 </div>
                                 <div class="col-6">
-                                    <label class="small text-muted">Precio Negro (Cliente)</label>
+                                    <label class="small text-muted">Precio Cliente ($)</label>
                                     <input type="number" step="0.01" id="facPrecioNegro" class="form-control form-control-sm" placeholder="0.00">
                                 </div>
                                 <div class="col-6">
-                                    <label class="small text-muted">Precio Naranja (Costo)</label>
+                                    <label class="small text-muted">Costo Shein ($)</label>
                                     <input type="number" step="0.01" id="facPrecioNaranja" class="form-control form-control-sm" placeholder="0.00">
                                 </div>
                             </div>
@@ -128,28 +134,32 @@
                             </div>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label small">Costo Envío Estimado ($)</label>
+                            <label class="form-label small">Costo Envío Local/Nacional ($)</label>
                             <input type="number" step="0.01" id="facEnvio" class="form-control" value="0.00" oninput="calcularTotalFactura()">
                         </div>
                     </div>
                 </div>
 
                 <div class="col-md-7">
-                    <div class="invoice-box card-custom">
+                    <div class="invoice-box card-custom" id="printableArea">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="fw-bold mb-0">FACTURA DE COMPRA</h4>
+                            <h4 class="fw-bold mb-0" style="color: var(--primary-pink);">FACTURA DE COMPRA</h4>
                             <span class="badge bg-secondary">Entrega: 15-20 días hábiles</span>
+                        </div>
+                        <div class="mb-3">
+                            <p class="mb-1"><strong>Tracking:</strong> <span id="printTracking">-</span></p>
+                            <p class="mb-1"><strong>Cliente:</strong> <span id="printCliente">Público General</span></p>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>ID / Artículo</th>
+                                        <th>Artículo / ID</th>
                                         <th>Talla</th>
                                         <th>Cant.</th>
                                         <th>Precio</th>
                                         <th>Total</th>
-                                        <th>Acción</th>
+                                        <th class="no-print">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tablaFactura"></tbody>
@@ -157,11 +167,18 @@
                         </div>
                         <div class="text-end mt-3">
                             <p class="mb-1">Subtotal: <span id="lblSubtotal" class="fw-bold">$0.00</span></p>
-                            <p class="mb-1 text-danger" id="rowDescuento" style="display:none;">Descuento (3%): <span id="lblDescuento">-$0.00</span></p>
                             <p class="mb-1">Envío: <span id="lblEnvio" class="fw-bold">$0.00</span></p>
-                            <h4 class="fw-bold text-dark mt-2">TOTAL: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
+                            <h4 class="fw-bold text-dark mt-2">TOTAL A PAGAR: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
                         </div>
-                        <button class="btn btn-dark w-100 mt-3" onclick="guardarFactura()"><i class="fa-solid fa-floppy-disk me-2"></i>Guardar y Emitir Factura</button>
+                        <div class="p-3 mt-3 text-center bg-light rounded border">
+                            <p class="mb-0 small fw-bold text-muted">
+                                <i class="fa-solid fa-heart text-danger me-1"></i>
+                                ¡Gracias por su compra! Etiquétanos en redes sociales para que en su siguiente compra obtenga un descuento especial.
+                            </p>
+                        </div>
+                        <div class="mt-4 no-print d-grid gap-2">
+                            <button class="btn btn-dark" onclick="guardarYGenerarPDF()"><i class="fa-solid fa-file-pdf me-2"></i>Guardar y Generar PDF (Imprimir / Enviar)</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,40 +187,34 @@
         <!-- SECCIÓN 3: CONTROL PRIVADO GANANCIAS -->
         <div class="tab-pane fade" id="private" role="tabpanel">
             <div class="card card-custom p-4">
-                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Control Privado: Precios Sincronizados de Factura</h5>
-                <p class="text-muted small">Los artículos agregados a la factura se sincronizan aquí automáticamente para que evalúes tu ganancia y flete estimado.</p>
+                <h5 class="fw-bold mb-3 text-danger"><i class="fa-solid fa-lock me-2"></i>Control Privado: Costos y Fletes</h5>
+                <p class="text-muted small">Cálculo exacto del peso estimado por tipo de prenda (Tarifa: $6 por libra) y costo base de la mercancía.</p>
                 
                 <div class="table-responsive mb-4">
                     <table class="table table-hover align-middle">
                         <thead class="table-dark">
                             <tr>
-                                <th>ID / Prenda</th>
-                                <th>Talla</th>
-                                <th>Precio Negro (Cliente)</th>
-                                <th>Precio Naranja (Costo SHEIN)</th>
-                                <th>Tipo / Flete ($6/lb)</th>
-                                <th>Ganancia Bruta</th>
+                                <th>Artículo / ID</th>
+                                <th>Tipo de Prenda / Peso Estimado</th>
+                                <th>Costo Shein (Naranja)</th>
+                                <th>Flete Estimado ($6/lb)</th>
                             </tr>
                         </thead>
                         <tbody id="tablaControlPrivado">
-                            <tr><td colspan="6" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <div id="resPrivado" class="p-3 bg-light rounded border">
                     <div class="row text-center">
-                        <div class="col-md-4">
-                            <h6>Ganancia Bruta Total</h6>
-                            <h3 class="text-success fw-bold" id="resGananciaBruta">$0.00</h3>
+                        <div class="col-md-6">
+                            <h6>Costo Total Mercancía (Naranja)</h6>
+                            <h3 class="text-danger fw-bold" id="resCostoNaranja">$0.00</h3>
                         </div>
-                        <div class="col-md-4">
-                            <h6>Flete Estimado Total ($6/lb)</h6>
-                            <h3 class="text-warning fw-bold" id="resFlete">$0.00</h3>
-                        </div>
-                        <div class="col-md-4">
-                            <h6>Ganancia Neta Estimada</h6>
-                            <h3 class="text-primary fw-bold" id="resGananciaNeta">$0.00</h3>
+                        <div class="col-md-6">
+                            <h6>Flete Total Estimado ($6/lb)</h6>
+                            <h3 class="text-warning fw-bold" id="resFleteTotal">$0.00</h3>
                         </div>
                     </div>
                 </div>
@@ -215,7 +226,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let stock = JSON.parse(localStorage.getItem('st_stock')) || [];
-    let clientes = JSON.parse(localStorage.getItem('st_clientes')) || {};
     let facturaItems = [];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -249,8 +259,7 @@
                     <td>${item.articulo}</td>
                     <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>${item.color}</td>
-                    <td><span class="fw-bold">${item.cantidad}</span></td>
-                    <td>$${item.precio.toFixed(2)}</td>
+                    <td><span class="fw-bold">${item.cantidad}</span></td> <td>$${item.precio.toFixed(2)}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" onclick="eliminarStock(${item.id})"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -266,46 +275,24 @@
 
     // --- SECCIÓN 2: FACTURACIÓN ---
     function generarTracking() {
-        document.getElementById('facTracking').value = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
+        const trk = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
+        document.getElementById('facTracking').value = trk;
+        document.getElementById('printTracking').innerText = trk;
     }
 
-    function cargarDatosSheinAutomatico() {
-        const val = document.getElementById('facSheinId').value.trim();
-        if(val.length > 3) {
-            if(!document.getElementById('facNombreArt').value) {
-                document.getElementById('facNombreArt').value = "Artículo SHEIN";
-            }
-            if(!document.getElementById('facTallaArt').value) {
-                document.getElementById('facTallaArt').value = "M";
-            }
-            if(!document.getElementById('facPrecioNegro').value) {
-                document.getElementById('facPrecioNegro').value = "15.00";
-            }
-            if(!document.getElementById('facPrecioNaranja').value) {
-                document.getElementById('facPrecioNaranja').value = "10.00";
-            }
-        }
-    }
-
-    function evaluarDescuentoCliente() {
-        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
-        const lbl = document.getElementById('lblFidelidad');
-        if(clientes[cliente] && clientes[cliente] >= 1) {
-            lbl.classList.remove('d-none');
-        } else {
-            lbl.classList.add('d-none');
-        }
-        calcularTotalFactura();
+    function actualizarNombreCliente() {
+        const clienteInput = document.getElementById('facCliente').value.trim();
+        document.getElementById('printCliente').innerText = clienteInput || 'Público General';
     }
 
     function agregarArticuloFactura() {
-        const id = document.getElementById('facSheinId').value || 'S/N';
-        const nombre = document.getElementById('facNombreArt').value || 'Artículo SHEIN';
-        const talla = document.getElementById('facTallaArt').value || 'S/N';
+        const id = document.getElementById('facSheinId').value.trim() || 'S/N';
+        const nombre = document.getElementById('facNombreArt').value.trim() || 'Artículo SHEIN';
+        const talla = document.getElementById('facTallaArt').value.trim() || 'S/N';
         const precioNegro = parseFloat(document.getElementById('facPrecioNegro').value) || 0;
-        const precioNaranja = parseFloat(document.getElementById('facPrecioNaranja').value) || (precioNegro * 0.7);
+        const precioNaranja = parseFloat(document.getElementById('facPrecioNaranja').value) || 0;
 
-        if(precioNegro <= 0) return alert('Ingresa un precio negro válido');
+        if(precioNegro <= 0) return alert('Ingresa un precio válido para el cliente');
 
         facturaItems.push({ 
             uid: Date.now(),
@@ -315,10 +302,9 @@
             cantidad: 1, 
             precioNegro, 
             precioNaranja,
-            peso: 0.5 
+            peso: 0.35 // Por defecto franela/top ligero (~0.35 lb)
         });
 
-        // Limpiar inputs
         document.getElementById('facSheinId').value = '';
         document.getElementById('facNombreArt').value = '';
         document.getElementById('facTallaArt').value = '';
@@ -344,9 +330,8 @@
                     <td><small class="text-muted">${item.id}</small><br>${item.nombre}</td>
                     <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>${item.cantidad}</td>
-                    <td>$${item.precioNegro.toFixed(2)}</td>
-                    <td>$${(item.precioNegro * item.cantidad).toFixed(2)}</td>
-                    <td class="text-center">
+                    <td>$${item.precioNegro.toFixed(2)}</td> <td>$${(item.precioNegro * item.cantidad).toFixed(2)}</td>
+                    <td class="text-center no-print">
                         <button class="btn btn-sm btn-outline-danger" onclick="eliminarItemFactura(${item.uid})" title="Eliminar ítem">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -358,91 +343,53 @@
 
     function calcularTotalFactura() {
         let subtotal = facturaItems.reduce((acc, i) => acc + (i.precioNegro * i.cantidad), 0);
-        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
-        let descuento = 0;
-
-        if(clientes[cliente] && clientes[cliente] >= 1) {
-            descuento = subtotal * 0.03;
-            document.getElementById('rowDescuento').style.display = 'block';
-            document.getElementById('lblDescuento').innerText = '-$' + descuento.toFixed(2);
-        } else {
-            document.getElementById('rowDescuento').style.display = 'none';
-        }
-
         const envio = parseFloat(document.getElementById('facEnvio').value) || 0;
-        const total = (subtotal - descuento) + envio;
+        const total = subtotal + envio;
 
         document.getElementById('lblSubtotal').innerText = '$' + subtotal.toFixed(2);
         document.getElementById('lblEnvio').innerText = '$' + envio.toFixed(2);
         document.getElementById('lblTotal').innerText = '$' + total.toFixed(2);
     }
 
-    function guardarFactura() {
-        const cliente = document.getElementById('facCliente').value.trim().toLowerCase();
+    function guardarYGenerarPDF() {
+        const cliente = document.getElementById('facCliente').value.trim();
         if(!cliente) return alert('Ingresa el nombre del cliente');
-        if(facturaItems.length === 0) return alert('Agrega al menos un artículo');
+        if(facturaItems.length === 0) return alert('Agrega al menos un artículo a la factura');
 
-        clientes[cliente] = (clientes[cliente] || 0) + 1;
-        localStorage.setItem('st_clientes', JSON.stringify(clientes));
-
-        alert('¡Factura guardada con éxito!');
-        facturaItems = [];
-        document.getElementById('facCliente').value = '';
-        renderFactura();
-        renderControlPrivado();
-        generarTracking();
+        // Abre la orden de impresión nativa del sistema (Guardar como PDF)
+        window.print();
     }
 
     // --- SECCIÓN 3: CONTROL PRIVADO ---
-    function actualizarPesoPrivado(uid, peso) {
+    function actualizarTipoPrendaPrivado(uid, pesoSeleccionado) {
         const item = facturaItems.find(i => i.uid === uid);
-        if(item) item.peso = parseFloat(peso);
+        if(item) item.peso = parseFloat(pesoSeleccionado);
         renderControlPrivado();
     }
 
     function renderControlPrivado() {
         const tbody = document.getElementById('tablaControlPrivado');
         if(facturaItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>';
-            document.getElementById('resGananciaBruta').innerText = '$0.00';
-            document.getElementById('resFlete').innerText = '$0.00';
-            document.getElementById('resGananciaNeta').innerText = '$0.00';
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Aún no has agregado artículos a la factura actual.</td></tr>';
+            document.getElementById('resCostoNaranja').innerText = '$0.00';
+            document.getElementById('resFleteTotal').innerText = '$0.00';
             return;
         }
 
         tbody.innerHTML = '';
-        let totBruto = 0;
+        let totCostoNaranja = 0;
         let totFlete = 0;
 
         facturaItems.forEach(item => {
-            const gananciaBruta = item.precioNegro - item.precioNaranja;
-            const flete = item.peso * 6;
-            totBruto += gananciaBruta;
-            totFlete += flete;
+            totCostoNaranja += item.precioNaranja;
+            const fleteItem = item.peso * 6;
+            totFlete += fleteItem;
 
             tbody.innerHTML += `
                 <tr>
                     <td><small class="text-muted">${item.id}</small><br><strong>${item.nombre}</strong></td>
-                    <td><span class="badge bg-secondary">${item.talla}</span></td>
-                    <td>$${item.precioNegro.toFixed(2)}</td>
-                    <td>$${item.precioNaranja.toFixed(2)}</td>
                     <td>
-                        <select class="form-select form-select-sm" onchange="actualizarPesoPrivado(${item.uid}, this.value)">
-                            <option value="0.5" ${item.peso === 0.5 ? 'selected' : ''}>Franela / Top (~0.5 lb)</option>
-                            <option value="0.8" ${item.peso === 0.8 ? 'selected' : ''}>Vestido (~0.8 lb)</option>
-                            <option value="1.2" ${item.peso === 1.2 ? 'selected' : ''}>Jean / Pantalón (~1.2 lb)</option>
-                            <option value="1.5" ${item.peso === 1.5 ? 'selected' : ''}>Chaqueta / Zapato (~1.5 lb)</option>
-                        </select>
-                    </td>
-                    <td class="fw-bold text-success">$${gananciaBruta.toFixed(2)}</td>
-                </tr>`;
-        });
-
-        document.getElementById('resGananciaBruta').innerText = '$' + totBruto.toFixed(2);
-        document.getElementById('resFlete').innerText = '$' + totFlete.toFixed(2);
-        document.getElementById('resGananciaNeta').innerText = '$' + (totBruto - totFlete).toFixed(2);
-    }
-</script>
-
-</body>
-</html>
+                        <select class="form-select form-select-sm" onchange="actualizarTipoPrendaPrivado(${item.uid}, this.value)">
+                            <option value="0.15" ${item.peso === 0.15 ? 'selected' : ''}>Bisutería / Accesorios pequeños (~0.15 lb)</option>
+                            <option value="0.2" ${item.peso === 0.2 ? 'selected' : ''}>Forros de teléfono / Artículos oficina (~0.2 lb)</option>
+                            <option value="0.35" ${item.peso === 0.35 ? 'selected' : ''}>Franela /
