@@ -23,6 +23,12 @@
             padding-bottom: 15px;
             margin-bottom: 20px;
         }
+
+        .star-rating {
+            font-size: 0.95rem;
+            color: var(--primary-pink);
+            letter-spacing: 2px;
+        }
         
         @media print {
             body * { visibility: hidden; }
@@ -42,7 +48,7 @@
         <span class="badge bg-dark px-3 py-2">Personal Shopper Suite</span>
     </header>
 
-    <!-- Navegación principal entre 4 Secciones -->
+    <!-- Navegación principal -->
     <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white no-print" id="mainTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
@@ -222,15 +228,30 @@
 
                         <div class="text-end mt-3">
                             <p class="mb-1">Subtotal: <span id="lblSubtotal" class="fw-bold">$0.00</span></p>
+                            <p class="mb-1 text-danger" id="rowDescuento15" style="display:none;">Descuento Fidelidad (15%): <span id="lblDescuento15">-$0.00</span></p>
                             <p class="mb-1">Envío: <span id="lblEnvio" class="fw-bold">$0.00</span></p>
                             <h4 class="fw-bold text-dark mt-2">TOTAL A PAGAR: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
                         </div>
 
-                        <div class="p-3 mt-3 text-center bg-light rounded border">
-                            <p class="mb-0 small fw-bold text-muted">
-                                <i class="fa-solid fa-heart text-danger me-1"></i>
+                        <!-- MENSAJE DE AGRADECIMIENTO Y ESTRELLAS (ESTILO LIMPIO) -->
+                        <div class="mt-4 text-center">
+                            <p class="mb-2" style="font-size: 0.8rem; color: #ff6b8b; font-weight: 500;">
                                 Gracias por su compra, etiquétenos en redes sociales para que en su siguiente compra obtenga un descuento especial.
                             </p>
+                            
+                            <!-- Renglón Delgado de Estrellas -->
+                            <div class="d-inline-flex align-items-center gap-2 pt-1 border-top" style="border-color: #f0f0f0 !important;">
+                                <span class="star-rating" id="contenedorEstrellas">
+                                    <i class="fa-regular fa-star"></i>
+                                    <i class="fa-regular fa-star"></i>
+                                    <i class="fa-regular fa-star"></i>
+                                    <i class="fa-regular fa-star"></i>
+                                    <i class="fa-regular fa-star"></i>
+                                </span>
+                                <small class="text-muted" style="font-size: 0.72rem;" id="lblStarStatus">
+                                    (1 pedido = 1 estrella. Al completar la 5.ª estrella recibes 15% de descuento)
+                                </small>
+                            </div>
                         </div>
 
                         <div class="mt-4 no-print d-grid gap-2">
@@ -341,6 +362,7 @@
 <script>
     let stock = JSON.parse(localStorage.getItem('st_stock')) || [];
     let historialFacturas = JSON.parse(localStorage.getItem('st_historial_facturas')) || [];
+    let contadorEstrellasClientes = JSON.parse(localStorage.getItem('st_estrellas_clientes')) || {};
     let facturaItems = [];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -410,6 +432,34 @@
     function actualizarNombreCliente() {
         const clienteInput = document.getElementById('facCliente').value.trim();
         document.getElementById('printCliente').innerText = clienteInput || 'Público General';
+        evaluarEstrellasCliente();
+    }
+
+    function evaluarEstrellasCliente() {
+        const clienteKey = document.getElementById('facCliente').value.trim().toLowerCase();
+        let estrellasActuales = (contadorEstrellasClientes[clienteKey] || 0) + 1; // Próxima estrella a otorgar
+
+        if(estrellasActuales > 5) estrellasActuales = 5;
+
+        // Renderizar Estrellas (Llenas vs Vacías)
+        const contenedor = document.getElementById('contenedorEstrellas');
+        contenedor.innerHTML = '';
+        for(let i = 1; i <= 5; i++) {
+            if(i <= estrellasActuales) {
+                contenedor.innerHTML += '<i class="fa-solid fa-star"></i>';
+            } else {
+                contenedor.innerHTML += '<i class="fa-regular fa-star"></i>';
+            }
+        }
+
+        const lblStatus = document.getElementById('lblStarStatus');
+        if(estrellasActuales === 5) {
+            lblStatus.innerHTML = '<strong style="color: #ff6b8b;">¡5.ª estrella alcanzada! 15% de descuento otorgado.</strong>';
+        } else {
+            lblStatus.innerText = `(${estrellasActuales}/5 estrellas. Al completar la 5.ª estrella recibes 15% de descuento)`;
+        }
+
+        calcularTotalFactura();
     }
 
     function agregarArticuloFactura() {
@@ -471,13 +521,25 @@
 
     function calcularTotalFactura() {
         let subtotal = facturaItems.reduce((acc, i) => acc + (i.precioNegro * i.cantidad), 0);
+        const clienteKey = document.getElementById('facCliente').value.trim().toLowerCase();
+        let estrellasFuturas = (contadorEstrellasClientes[clienteKey] || 0) + 1;
+        let descuento15 = 0;
+
+        if(estrellasFuturas >= 5 && subtotal > 0) {
+            descuento15 = subtotal * 0.15;
+            document.getElementById('rowDescuento15').style.display = 'block';
+            document.getElementById('lblDescuento15').innerText = '-$' + descuento15.toFixed(2);
+        } else {
+            document.getElementById('rowDescuento15').style.display = 'none';
+        }
+
         const envio = parseFloat(document.getElementById('facEnvio').value) || 0;
-        const total = subtotal + envio;
+        const total = (subtotal - descuento15) + envio;
 
         document.getElementById('lblSubtotal').innerText = '$' + subtotal.toFixed(2);
         document.getElementById('lblEnvio').innerText = '$' + envio.toFixed(2);
         document.getElementById('lblTotal').innerText = '$' + total.toFixed(2);
-        return { subtotal, envio, total };
+        return { subtotal, descuento15, envio, total };
     }
 
     function guardarYGenerarPDF() {
@@ -485,9 +547,22 @@
         if(!cliente) return alert('Ingresa el nombre del cliente');
         if(facturaItems.length === 0) return alert('Agrega al menos un artículo a la factura');
 
-        const { subtotal, envio, total } = calcularTotalFactura();
+        const { subtotal, descuento15, envio, total } = calcularTotalFactura();
 
-        // Calcular costo SHEIN y Flete total de esta factura
+        // Actualizar contador de estrellas para el cliente
+        const clienteKey = cliente.toLowerCase();
+        let estrellasAnteriores = contadorEstrellasClientes[clienteKey] || 0;
+        let nuevasEstrellas = estrellasAnteriores + 1;
+
+        if(nuevasEstrellas >= 5) {
+            // Reiniciar contador después de otorgar el premio de la 5ta estrella
+            contadorEstrellasClientes[clienteKey] = 0;
+        } else {
+            contadorEstrellasClientes[clienteKey] = nuevasEstrellas;
+        }
+        localStorage.setItem('st_estrellas_clientes', JSON.stringify(contadorEstrellasClientes));
+
+        // Calcular costo SHEIN y Flete
         let costoSheinTotal = facturaItems.reduce((acc, i) => acc + i.precioNaranja, 0);
         let fleteTotal = facturaItems.reduce((acc, i) => acc + (i.peso * 6), 0);
 
@@ -498,11 +573,12 @@
             cliente,
             items: [...facturaItems],
             subtotal,
+            descuento15,
             envio,
             total,
             costoSheinTotal,
             fleteTotal,
-            gananciaNeta: subtotal - (costoSheinTotal + fleteTotal),
+            gananciaNeta: (subtotal - descuento15) - (costoSheinTotal + fleteTotal),
             estatus: 'En camino ✈️'
         };
 
@@ -512,7 +588,7 @@
         renderHistorial();
         renderContabilidad();
 
-        // Generar impresión/PDF
+        // Generar ventana de PDF/Impresión
         window.print();
     }
 
@@ -652,11 +728,13 @@
         tbody.innerHTML = '';
         historialFacturas.forEach(f => {
             const sub = f.subtotal || 0;
+            const desc = f.descuento15 || 0;
+            const totalVentaCliente = sub - desc;
             const shein = f.costoSheinTotal || 0;
             const flete = f.fleteTotal || 0;
-            const ganancia = sub - (shein + flete);
+            const ganancia = totalVentaCliente - (shein + flete);
 
-            totVentas += sub;
+            totVentas += totalVentaCliente;
             totShein += shein;
             totFletes += flete;
 
@@ -664,7 +742,7 @@
                 <tr>
                     <td><small>${f.fecha}</small></td>
                     <td><strong>${f.cliente}</strong></td>
-                    <td class="fw-bold">$${sub.toFixed(2)}</td>
+                    <td class="fw-bold">$${totalVentaCliente.toFixed(2)}</td>
                     <td class="text-danger">$${shein.toFixed(2)}</td>
                     <td class="text-warning">$${flete.toFixed(2)}</td>
                     <td class="fw-bold text-success">$${ganancia.toFixed(2)}</td>
@@ -682,9 +760,12 @@
     function reiniciarContabilidad() {
         if(confirm('¿Estás segura de reiniciar toda la contabilidad e historial? Se borrarán las facturas acumuladas.')) {
             historialFacturas = [];
+            contadorEstrellasClientes = {};
             localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+            localStorage.setItem('st_estrellas_clientes', JSON.stringify(contadorEstrellasClientes));
             renderHistorial();
             renderContabilidad();
+            evaluarEstrellasCliente();
         }
     }
 </script>
