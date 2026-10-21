@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor & Facturador SHEIN V2</title>
+    <title>Gestor & Facturador LinaShein V2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,6 +17,12 @@
         .nav-link { color: var(--dark-accent); font-weight: 600; }
         .card-custom { border-radius: 15px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .invoice-box { background: #fff; padding: 25px; border-radius: 10px; border: 1px solid #eee; }
+        
+        .header-membrete {
+            border-bottom: 2px solid var(--primary-pink);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
         
         @media print {
             body * { visibility: hidden; }
@@ -36,7 +42,7 @@
         <span class="badge bg-dark px-3 py-2">Personal Shopper Suite</span>
     </header>
 
-    <!-- Navegación entre las 3 Secciones -->
+    <!-- Navegación principal -->
     <ul class="nav nav-pills nav-justified mb-4 card-custom p-2 bg-white no-print" id="mainTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
@@ -92,6 +98,35 @@
 
         <!-- SECCIÓN 2: FACTURACIÓN CLIENTE -->
         <div class="tab-pane fade" id="billing" role="tabpanel">
+            <div class="row g-4 mb-4 no-print">
+                <div class="col-12 text-end">
+                    <button class="btn btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHistorial">
+                        <i class="fa-solid fa-clock-rotate-left me-2"></i>Ver Historial de Facturas Viejas
+                    </button>
+                </div>
+                <div class="collapse col-12" id="collapseHistorial">
+                    <div class="card card-custom p-4 bg-white border">
+                        <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-receipt me-2"></i>Facturas Guardadas Anteriormente</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Tracking</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaHistorialFacturas">
+                                    <tr><td colspan="5" class="text-center text-muted">No hay facturas en el historial.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row g-4">
                 <div class="col-md-5 no-print">
                     <div class="card card-custom p-4">
@@ -142,14 +177,27 @@
 
                 <div class="col-md-7">
                     <div class="invoice-box card-custom" id="printableArea">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="fw-bold mb-0" style="color: var(--primary-pink);">FACTURA DE COMPRA</h4>
-                            <span class="badge bg-secondary">Entrega: 15-20 días hábiles</span>
+                        <!-- MEMBRETE OFICIAL LINASHEIN -->
+                        <div class="header-membrete d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 class="fw-bold mb-0" style="color: var(--primary-pink); letter-spacing: 1px;">LinaShein</h2>
+                                <small class="text-muted fw-bold">Personal Shopper & Tienda Online</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-dark mb-1">FACTURA DE COMPRA</span><br>
+                                <small class="text-muted"><strong>Fecha:</strong> <span id="printFecha">-</span></small>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <p class="mb-1"><strong>Tracking:</strong> <span id="printTracking">-</span></p>
-                            <p class="mb-1"><strong>Cliente:</strong> <span id="printCliente">Público General</span></p>
+
+                        <div class="mb-3 row">
+                            <div class="col-6">
+                                <p class="mb-1"><strong>Cliente:</strong> <span id="printCliente">Público General</span></p>
+                            </div>
+                            <div class="col-6 text-end">
+                                <p class="mb-1"><strong>Tracking:</strong> <span id="printTracking">-</span></p>
+                            </div>
                         </div>
+
                         <div class="table-responsive">
                             <table class="table table-bordered align-middle">
                                 <thead class="table-light">
@@ -165,17 +213,20 @@
                                 <tbody id="tablaFactura"></tbody>
                             </table>
                         </div>
+
                         <div class="text-end mt-3">
                             <p class="mb-1">Subtotal: <span id="lblSubtotal" class="fw-bold">$0.00</span></p>
                             <p class="mb-1">Envío: <span id="lblEnvio" class="fw-bold">$0.00</span></p>
                             <h4 class="fw-bold text-dark mt-2">TOTAL A PAGAR: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
                         </div>
+
                         <div class="p-3 mt-3 text-center bg-light rounded border">
                             <p class="mb-0 small fw-bold text-muted">
                                 <i class="fa-solid fa-heart text-danger me-1"></i>
-                                ¡Gracias por su compra! Etiquétanos en redes sociales para que en su siguiente compra obtenga un descuento especial.
+                                Gracias por su compra, etiquétenos en redes sociales para que en su siguiente compra obtenga un descuento especial.
                             </p>
                         </div>
+
                         <div class="mt-4 no-print d-grid gap-2">
                             <button class="btn btn-dark" onclick="guardarYGenerarPDF()"><i class="fa-solid fa-file-pdf me-2"></i>Guardar y Generar PDF (Imprimir / Enviar)</button>
                         </div>
@@ -226,11 +277,14 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let stock = JSON.parse(localStorage.getItem('st_stock')) || [];
+    let historialFacturas = JSON.parse(localStorage.getItem('st_historial_facturas')) || [];
     let facturaItems = [];
 
     document.addEventListener('DOMContentLoaded', () => {
         renderStock();
         generarTracking();
+        establecerFechaHoy();
+        renderHistorial();
     });
 
     // --- SECCIÓN 1: STOCK ---
@@ -259,7 +313,8 @@
                     <td>${item.articulo}</td>
                     <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>${item.color}</td>
-                    <td><span class="fw-bold">${item.cantidad}</span></td> <td>$${item.precio.toFixed(2)}</td>
+                    <td><span class="fw-bold">${item.cantidad}</span></td>
+                    <td>$${item.precio.toFixed(2)}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger" onclick="eliminarStock(${item.id})"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -274,6 +329,14 @@
     }
 
     // --- SECCIÓN 2: FACTURACIÓN ---
+    function establecerFechaHoy() {
+        const hoy = new Date();
+        const dia = String(hoy.getDate()).padStart(2, '0');
+        const mes = String(hoy.getMonth() + 1).padStart(2, '0');
+        const anio = hoy.getFullYear();
+        document.getElementById('printFecha').innerText = `${dia}/${mes}/${anio}`;
+    }
+
     function generarTracking() {
         const trk = 'SHN-' + Math.floor(10000 + Math.random() * 90000);
         document.getElementById('facTracking').value = trk;
@@ -302,7 +365,7 @@
             cantidad: 1, 
             precioNegro, 
             precioNaranja,
-            peso: 0.35 // Por defecto franela/top ligero (~0.35 lb)
+            peso: 0.35
         });
 
         document.getElementById('facSheinId').value = '';
@@ -330,7 +393,8 @@
                     <td><small class="text-muted">${item.id}</small><br>${item.nombre}</td>
                     <td><span class="badge bg-secondary">${item.talla}</span></td>
                     <td>${item.cantidad}</td>
-                    <td>$${item.precioNegro.toFixed(2)}</td> <td>$${(item.precioNegro * item.cantidad).toFixed(2)}</td>
+                    <td>$${item.precioNegro.toFixed(2)}</td>
+                    <td>$${(item.precioNegro * item.cantidad).toFixed(2)}</td>
                     <td class="text-center no-print">
                         <button class="btn btn-sm btn-outline-danger" onclick="eliminarItemFactura(${item.uid})" title="Eliminar ítem">
                             <i class="fa-solid fa-trash"></i>
@@ -349,6 +413,7 @@
         document.getElementById('lblSubtotal').innerText = '$' + subtotal.toFixed(2);
         document.getElementById('lblEnvio').innerText = '$' + envio.toFixed(2);
         document.getElementById('lblTotal').innerText = '$' + total.toFixed(2);
+        return { subtotal, envio, total };
     }
 
     function guardarYGenerarPDF() {
@@ -356,8 +421,78 @@
         if(!cliente) return alert('Ingresa el nombre del cliente');
         if(facturaItems.length === 0) return alert('Agrega al menos un artículo a la factura');
 
-        // Abre la orden de impresión nativa del sistema (Guardar como PDF)
+        const { subtotal, envio, total } = calcularTotalFactura();
+
+        // Guardar en el historial
+        const nuevaFactura = {
+            id: Date.now(),
+            fecha: document.getElementById('printFecha').innerText,
+            tracking: document.getElementById('printTracking').innerText,
+            cliente,
+            items: [...facturaItems],
+            subtotal,
+            envio,
+            total
+        };
+
+        historialFacturas.unshift(nuevaFactura);
+        localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+        renderHistorial();
+
+        // Generar ventana de PDF/Impresión
         window.print();
+    }
+
+    // --- MANEJO DE HISTORIAL DE FACTURAS ---
+    function renderHistorial() {
+        const tbody = document.getElementById('tablaHistorialFacturas');
+        if(historialFacturas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay facturas en el historial.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        historialFacturas.forEach(f => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><small>${f.fecha}</small></td>
+                    <td><span class="badge bg-dark">${f.tracking}</span></td>
+                    <td><strong>${f.cliente}</strong></td>
+                    <td class="fw-bold text-success">$${f.total.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="reimprimirFactura(${f.id})" title="Cargar y Reimprimir">
+                            <i class="fa-solid fa-print"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarFacturaHistorial(${f.id})" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    }
+
+    function reimprimirFactura(id) {
+        const f = historialFacturas.find(fact => fact.id === id);
+        if(!f) return;
+
+        document.getElementById('facCliente').value = f.cliente;
+        document.getElementById('printCliente').innerText = f.cliente;
+        document.getElementById('printTracking').innerText = f.tracking;
+        document.getElementById('printFecha').innerText = f.fecha;
+        document.getElementById('facEnvio').value = f.envio;
+
+        facturaItems = [...f.items];
+        renderFactura();
+        renderControlPrivado();
+        window.print();
+    }
+
+    function eliminarFacturaHistorial(id) {
+        if(confirm('¿Deseas eliminar esta factura del historial?')) {
+            historialFacturas = historialFacturas.filter(f => f.id !== id);
+            localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+            renderHistorial();
+        }
     }
 
     // --- SECCIÓN 3: CONTROL PRIVADO ---
@@ -392,4 +527,21 @@
                         <select class="form-select form-select-sm" onchange="actualizarTipoPrendaPrivado(${item.uid}, this.value)">
                             <option value="0.15" ${item.peso === 0.15 ? 'selected' : ''}>Bisutería / Accesorios pequeños (~0.15 lb)</option>
                             <option value="0.2" ${item.peso === 0.2 ? 'selected' : ''}>Forros de teléfono / Artículos oficina (~0.2 lb)</option>
-                            <option value="0.35" ${item.peso === 0.35 ? 'selected' : ''}>Franela /
+                            <option value="0.35" ${item.peso === 0.35 ? 'selected' : ''}>Franela / Top (~0.35 lb)</option>
+                            <option value="0.5" ${item.peso === 0.5 ? 'selected' : ''}>Licra / Short (~0.5 lb)</option>
+                            <option value="0.9" ${item.peso === 0.9 ? 'selected' : ''}>Pantalón / Mono / Vestido ligero (~0.9 lb)</option>
+                            <option value="1.3" ${item.peso === 1.3 ? 'selected' : ''}>Jean pesado / Chaqueta liviana (~1.3 lb)</option>
+                        </select>
+                    </td>
+                    <td class="fw-bold text-danger">$${item.precioNaranja.toFixed(2)}</td>
+                    <td class="fw-bold text-warning">$${fleteItem.toFixed(2)} <small class="text-muted fw-normal">(${item.peso} lb)</small></td>
+                </tr>`;
+        });
+
+        document.getElementById('resCostoNaranja').innerText = '$' + totCostoNaranja.toFixed(2);
+        document.getElementById('resFleteTotal').innerText = '$' + totFlete.toFixed(2);
+    }
+</script>
+
+</body>
+</html>
