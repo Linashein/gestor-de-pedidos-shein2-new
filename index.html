@@ -233,7 +233,7 @@
                             <h4 class="fw-bold text-dark mt-2">TOTAL A PAGAR: <span id="lblTotal" style="color: var(--primary-pink);">$0.00</span></h4>
                         </div>
 
-                        <!-- MENSAJE DE AGRADECIMIENTO Y ESTRELLAS (ESTILO LIMPIO) -->
+                        <!-- MENSAJE DE AGRADECIMIENTO Y ESTRELLAS -->
                         <div class="mt-4 text-center">
                             <p class="mb-2" style="font-size: 0.8rem; color: #ff6b8b; font-weight: 500;">
                                 Gracias por su compra, etiquétenos en redes sociales para que en su siguiente compra obtenga un descuento especial.
@@ -311,26 +311,26 @@
                 <div class="row g-3 mb-4 text-center">
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded border">
-                            <span class="text-muted small fw-bold">Ventas Totales</span>
+                            <span class="text-muted small fw-bold">Precio Negro (Cliente)</span>
                             <h3 class="text-dark fw-bold mb-0" id="accVentasTotales">$0.00</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded border">
-                            <span class="text-muted small fw-bold">Costo SHEIN Acumulado</span>
+                            <span class="text-muted small fw-bold">Precio Naranja (Costo)</span>
                             <h3 class="text-danger fw-bold mb-0" id="accCostoShein">$0.00</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="p-3 bg-light rounded border">
-                            <span class="text-muted small fw-bold">Fletes Acumulados ($6/lb)</span>
-                            <h3 class="text-warning fw-bold mb-0" id="accFletesTotales">$0.00</h3>
+                        <div class="p-3 bg-success text-white rounded border">
+                            <span class="small fw-bold">Ganancia Neta (Negro − Naranja)</span>
+                            <h3 class="fw-bold mb-0" id="accGananciaNeta">$0.00</h3>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="p-3 bg-success text-white rounded border">
-                            <span class="small fw-bold">Ganancia Neta Limpia</span>
-                            <h3 class="fw-bold mb-0" id="accGananciaNeta">$0.00</h3>
+                        <div class="p-3 bg-light rounded border">
+                            <span class="text-muted small fw-bold">Flete Cobrado (Sopesado)</span>
+                            <h3 class="text-warning fw-bold mb-0" id="accFletesTotales">$0.00</h3>
                         </div>
                     </div>
                 </div>
@@ -342,10 +342,10 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Cliente</th>
-                                <th>Total Cliente</th>
-                                <th>Costo SHEIN</th>
-                                <th>Flete Est.</th>
-                                <th>Ganancia Neta</th>
+                                <th>Precio Negro</th>
+                                <th>Precio Naranja</th>
+                                <th>Ganancia (Negro − Naranja)</th>
+                                <th>Flete ($)</th>
                             </tr>
                         </thead>
                         <tbody id="tablaContabilidadDesglose">
@@ -437,11 +437,10 @@
 
     function evaluarEstrellasCliente() {
         const clienteKey = document.getElementById('facCliente').value.trim().toLowerCase();
-        let estrellasActuales = (contadorEstrellasClientes[clienteKey] || 0) + 1; // Próxima estrella a otorgar
+        let estrellasActuales = (contadorEstrellasClientes[clienteKey] || 0) + 1;
 
         if(estrellasActuales > 5) estrellasActuales = 5;
 
-        // Renderizar Estrellas (Llenas vs Vacías)
         const contenedor = document.getElementById('contenedorEstrellas');
         contenedor.innerHTML = '';
         for(let i = 1; i <= 5; i++) {
@@ -549,21 +548,20 @@
 
         const { subtotal, descuento15, envio, total } = calcularTotalFactura();
 
-        // Actualizar contador de estrellas para el cliente
         const clienteKey = cliente.toLowerCase();
         let estrellasAnteriores = contadorEstrellasClientes[clienteKey] || 0;
         let nuevasEstrellas = estrellasAnteriores + 1;
 
         if(nuevasEstrellas >= 5) {
-            // Reiniciar contador después de otorgar el premio de la 5ta estrella
             contadorEstrellasClientes[clienteKey] = 0;
         } else {
             contadorEstrellasClientes[clienteKey] = nuevasEstrellas;
         }
         localStorage.setItem('st_estrellas_clientes', JSON.stringify(contadorEstrellasClientes));
 
-        // Calcular costo SHEIN y Flete
-        let costoSheinTotal = facturaItems.reduce((acc, i) => acc + i.precioNaranja, 0);
+        // Calcular costo SHEIN (Naranja) y Precio Negro
+        let costoSheinTotal = facturaItems.reduce((acc, i) => acc + (i.precioNaranja * i.cantidad), 0);
+        let precioNegroTotal = facturaItems.reduce((acc, i) => acc + (i.precioNegro * i.cantidad), 0);
         let fleteTotal = facturaItems.reduce((acc, i) => acc + (i.peso * 6), 0);
 
         const nuevaFactura = {
@@ -572,13 +570,13 @@
             tracking: document.getElementById('printTracking').innerText,
             cliente,
             items: [...facturaItems],
-            subtotal,
+            subtotal: precioNegroTotal,
             descuento15,
             envio,
             total,
             costoSheinTotal,
             fleteTotal,
-            gananciaNeta: (subtotal - descuento15) - (costoSheinTotal + fleteTotal),
+            gananciaNeta: (precioNegroTotal - descuento15) - costoSheinTotal, // Ganancia = Negro - Naranja
             estatus: 'En camino ✈️'
         };
 
@@ -588,7 +586,6 @@
         renderHistorial();
         renderContabilidad();
 
-        // Generar ventana de PDF/Impresión
         window.print();
     }
 
@@ -708,12 +705,12 @@
         document.getElementById('resFleteTotal').innerText = '$' + totFlete.toFixed(2);
     }
 
-    // --- SECCIÓN 4: CONTABILIDAD GLOBAL ---
+    // --- SECCIÓN 4: CONTABILIDAD GLOBAL (GANANCIA REAL = NEGRO - NARANJA) ---
     function renderContabilidad() {
         const tbody = document.getElementById('tablaContabilidadDesglose');
         
-        let totVentas = 0;
-        let totShein = 0;
+        let totVentasNegro = 0;
+        let totSheinNaranja = 0;
         let totFletes = 0;
 
         if(historialFacturas.length === 0) {
@@ -727,34 +724,46 @@
 
         tbody.innerHTML = '';
         historialFacturas.forEach(f => {
-            const sub = f.subtotal || 0;
-            const desc = f.descuento15 || 0;
-            const totalVentaCliente = sub - desc;
-            const shein = f.costoSheinTotal || 0;
-            const flete = f.fleteTotal || 0;
-            const ganancia = totalVentaCliente - (shein + flete);
+            // Recálculo automático en base a los items guardados en cada factura
+            let pNegro = 0;
+            let pNaranja = 0;
+            let pFlete = 0;
 
-            totVentas += totalVentaCliente;
-            totShein += shein;
-            totFletes += flete;
+            if(f.items && f.items.length > 0) {
+                pNegro = f.items.reduce((acc, i) => acc + (i.precioNegro * (i.cantidad || 1)), 0);
+                pNaranja = f.items.reduce((acc, i) => acc + (i.precioNaranja * (i.cantidad || 1)), 0);
+                pFlete = f.items.reduce((acc, i) => acc + ((i.peso || 0.35) * 6), 0);
+            } else {
+                pNegro = f.subtotal || 0;
+                pNaranja = f.costoSheinTotal || 0;
+                pFlete = f.fleteTotal || 0;
+            }
+
+            const desc15 = f.descuento15 || 0;
+            const precioNegroConDescuento = pNegro - desc15;
+            const gananciaRealFactura = precioNegroConDescuento - pNaranja;
+
+            totVentasNegro += precioNegroConDescuento;
+            totSheinNaranja += pNaranja;
+            totFletes += pFlete;
 
             tbody.innerHTML += `
                 <tr>
                     <td><small>${f.fecha}</small></td>
                     <td><strong>${f.cliente}</strong></td>
-                    <td class="fw-bold">$${totalVentaCliente.toFixed(2)}</td>
-                    <td class="text-danger">$${shein.toFixed(2)}</td>
-                    <td class="text-warning">$${flete.toFixed(2)}</td>
-                    <td class="fw-bold text-success">$${ganancia.toFixed(2)}</td>
+                    <td class="fw-bold">$${precioNegroConDescuento.toFixed(2)}</td>
+                    <td class="text-danger">$${pNaranja.toFixed(2)}</td>
+                    <td class="fw-bold text-success">$${gananciaRealFactura.toFixed(2)}</td>
+                    <td class="text-warning">$${pFlete.toFixed(2)}</td>
                 </tr>`;
         });
 
-        let gananciaNetaTotal = totVentas - (totShein + totFletes);
+        let gananciaNetaAcumulada = totVentasNegro - totSheinNaranja;
 
-        document.getElementById('accVentasTotales').innerText = '$' + totVentas.toFixed(2);
-        document.getElementById('accCostoShein').innerText = '$' + totShein.toFixed(2);
+        document.getElementById('accVentasTotales').innerText = '$' + totVentasNegro.toFixed(2);
+        document.getElementById('accCostoShein').innerText = '$' + totSheinNaranja.toFixed(2);
         document.getElementById('accFletesTotales').innerText = '$' + totFletes.toFixed(2);
-        document.getElementById('accGananciaNeta').innerText = '$' + gananciaNetaTotal.toFixed(2);
+        document.getElementById('accGananciaNeta').innerText = '$' + gananciaNetaAcumulada.toFixed(2);
     }
 
     function reiniciarContabilidad() {
