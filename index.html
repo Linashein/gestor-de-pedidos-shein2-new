@@ -306,7 +306,7 @@
                     <h5 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-wallet me-2"></i>Balance y Contabilidad Acumulada</h5>
                     <button class="btn btn-sm btn-outline-danger" onclick="reiniciarContabilidad()"><i class="fa-solid fa-rotate-right me-1"></i> Reiniciar Cuentas</button>
                 </div>
-                <p class="text-muted small mb-4">Resumen acumulado de todas tus facturas emitidas hasta la fecha.</p>
+                <p class="text-muted small mb-4">Resumen acumulado de todas tus facturas emitidas. En Observaciones puedes anotar detalles del flete real pagado, pagos en Bs o abonos.</p>
 
                 <div class="row g-3 mb-4 text-center">
                     <div class="col-md-3">
@@ -329,7 +329,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded border">
-                            <span class="text-muted small fw-bold">Flete Cobrado (Sopesado)</span>
+                            <span class="text-muted small fw-bold">Fletes Estimados Acumulados</span>
                             <h3 class="text-warning fw-bold mb-0" id="accFletesTotales">$0.00</h3>
                         </div>
                     </div>
@@ -340,12 +340,12 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-secondary">
                             <tr>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
+                                <th>Fecha / Cliente</th>
                                 <th>Precio Negro</th>
                                 <th>Precio Naranja</th>
-                                <th>Ganancia (Negro − Naranja)</th>
-                                <th>Flete ($)</th>
+                                <th>Ganancia</th>
+                                <th>Flete Est. ($)</th>
+                                <th style="min-width: 250px;">Observaciones (Flete real, Pagos en Bs, Abonos)</th>
                             </tr>
                         </thead>
                         <tbody id="tablaContabilidadDesglose">
@@ -559,10 +559,9 @@
         }
         localStorage.setItem('st_estrellas_clientes', JSON.stringify(contadorEstrellasClientes));
 
-        // Calcular costo SHEIN (Naranja) y Precio Negro
         let costoSheinTotal = facturaItems.reduce((acc, i) => acc + (i.precioNaranja * i.cantidad), 0);
         let precioNegroTotal = facturaItems.reduce((acc, i) => acc + (i.precioNegro * i.cantidad), 0);
-        let fleteTotal = facturaItems.reduce((acc, i) => acc + (i.peso * 6), 0);
+        let fleteEstimado = facturaItems.reduce((acc, i) => acc + (i.peso * 6), 0);
 
         const nuevaFactura = {
             id: Date.now(),
@@ -575,8 +574,9 @@
             envio,
             total,
             costoSheinTotal,
-            fleteTotal,
-            gananciaNeta: (precioNegroTotal - descuento15) - costoSheinTotal, // Ganancia = Negro - Naranja
+            fleteTotal: fleteEstimado,
+            observacion: '',
+            gananciaNeta: (precioNegroTotal - descuento15) - costoSheinTotal,
             estatus: 'En camino ✈️'
         };
 
@@ -705,13 +705,21 @@
         document.getElementById('resFleteTotal').innerText = '$' + totFlete.toFixed(2);
     }
 
-    // --- SECCIÓN 4: CONTABILIDAD GLOBAL (GANANCIA REAL = NEGRO - NARANJA) ---
+    // --- SECCIÓN 4: CONTABILIDAD GLOBAL (CAMPO UNIFICADO DE OBSERVACIONES) ---
+    function actualizarObservacion(idFactura, texto) {
+        const f = historialFacturas.find(fact => fact.id === idFactura);
+        if(f) {
+            f.observacion = texto;
+            localStorage.setItem('st_historial_facturas', JSON.stringify(historialFacturas));
+        }
+    }
+
     function renderContabilidad() {
         const tbody = document.getElementById('tablaContabilidadDesglose');
         
         let totVentasNegro = 0;
         let totSheinNaranja = 0;
-        let totFletes = 0;
+        let totFletesEst = 0;
 
         if(historialFacturas.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aún no hay registros en la contabilidad.</td></tr>';
@@ -724,37 +732,41 @@
 
         tbody.innerHTML = '';
         historialFacturas.forEach(f => {
-            // Recálculo automático en base a los items guardados en cada factura
             let pNegro = 0;
             let pNaranja = 0;
-            let pFlete = 0;
+            let fleteEst = 0;
 
             if(f.items && f.items.length > 0) {
                 pNegro = f.items.reduce((acc, i) => acc + (i.precioNegro * (i.cantidad || 1)), 0);
                 pNaranja = f.items.reduce((acc, i) => acc + (i.precioNaranja * (i.cantidad || 1)), 0);
-                pFlete = f.items.reduce((acc, i) => acc + ((i.peso || 0.35) * 6), 0);
+                fleteEst = f.items.reduce((acc, i) => acc + ((i.peso || 0.35) * 6), 0);
             } else {
                 pNegro = f.subtotal || 0;
                 pNaranja = f.costoSheinTotal || 0;
-                pFlete = f.fleteTotal || 0;
+                fleteEst = f.fleteTotal || 0;
             }
 
             const desc15 = f.descuento15 || 0;
             const precioNegroConDescuento = pNegro - desc15;
             const gananciaRealFactura = precioNegroConDescuento - pNaranja;
+            const obsText = f.observacion || '';
 
             totVentasNegro += precioNegroConDescuento;
             totSheinNaranja += pNaranja;
-            totFletes += pFlete;
+            totFletesEst += fleteEst;
 
             tbody.innerHTML += `
                 <tr>
-                    <td><small>${f.fecha}</small></td>
-                    <td><strong>${f.cliente}</strong></td>
+                    <td><small class="text-muted">${f.fecha}</small><br><strong>${f.cliente}</strong></td>
                     <td class="fw-bold">$${precioNegroConDescuento.toFixed(2)}</td>
                     <td class="text-danger">$${pNaranja.toFixed(2)}</td>
                     <td class="fw-bold text-success">$${gananciaRealFactura.toFixed(2)}</td>
-                    <td class="text-warning">$${pFlete.toFixed(2)}</td>
+                    <td class="text-warning fw-bold">$${fleteEst.toFixed(2)}</td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm" 
+                            placeholder="Ej: Flete real $17 / Pagó 50% Bs / Compartido" 
+                            value="${obsText}" onchange="actualizarObservacion(${f.id}, this.value)">
+                    </td>
                 </tr>`;
         });
 
@@ -762,7 +774,7 @@
 
         document.getElementById('accVentasTotales').innerText = '$' + totVentasNegro.toFixed(2);
         document.getElementById('accCostoShein').innerText = '$' + totSheinNaranja.toFixed(2);
-        document.getElementById('accFletesTotales').innerText = '$' + totFletes.toFixed(2);
+        document.getElementById('accFletesTotales').innerText = '$' + totFletesEst.toFixed(2);
         document.getElementById('accGananciaNeta').innerText = '$' + gananciaNetaAcumulada.toFixed(2);
     }
 
